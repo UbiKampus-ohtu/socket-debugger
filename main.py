@@ -1,6 +1,7 @@
+import time
+import socket
 from array import array
 from multiprocessing import connection
-import socket
 from bytemessage import bytemessage
 
 def send_bytes(uri : str, port : int, bytes : bytearray):
@@ -37,4 +38,7 @@ lisp_sensors = [{'type':'humidity', 'value':85}]
 example_catalog = [('octave', octave_sensors), ('lisp', lisp_sensors)]
 
 message = build_catalog_message(example_catalog)
-send_bytes('localhost', 9000, message)
+
+while True:
+  send_bytes('localhost', 9000, message)
+  time.sleep(1)

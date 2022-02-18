@@ -1,61 +1,40 @@
+from array import array
+from multiprocessing import connection
 import socket
-import json
-import time
+from bytemessage import bytemessage
 
-transform_data = {
-  "id":"player id_here",
-  "data": {
-    "pos": (1.23456, 1.23456, 1.23456),
-    "rot": (1.23456, 1.23456, 1.23456)
-  }
-}
-
-sensor_data_1 = {
-  "id":"octave",
-  "data": {
-    "type":"temp",
-    "value":23
-  }
-}
-
-sensor_data_2 = {
-  "id":"octave",
-  "data": {
-    "type":"motion",
-    "value":1
-  }
-}
-
-def send_data(uri : str, port : int, data : dict):
-  payload = {
-    'id': data['id'],
-    'data': json.dumps(data['data'])
-  }
-  payload = bytes(json.dumps(payload), 'utf-8')
+def send_bytes(uri : str, port : int, bytes : bytearray):
   connection = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-  connection.sendto(payload, (uri, port))
+  connection.sendto(bytes, (uri, port))
 
-def send_all(uri : str, port : int):
-  packets = [transform_data, sensor_data_1, sensor_data_2]
+def build_room_message(targetName : str, data : array = []):
+  result = bytemessage()
 
-  for packet in packets:
-    send_data(uri, port, packet)
+  result.string(targetName)
+  result.char('\n')
 
-def move_player(uri : str, port : int):
-  x = 0
-  y = 0
-  z = 0
-  while True:
-    data = transform_data
-    data['data']['pos'] = {'x':x, 'y':y, 'z':z}
-    data['data']['rot'] = {'x':0, 'y':0, 'z':0}
-    print(data)
-    send_data(uri, port, data)
+  for entry in data:
+    result.json(entry)
+    result.char('\n')
 
-    x += 0.1
-    z += 0.1
+  result.char('\n')
+  return result.get()
 
-    time.sleep(1)
 
-#send_all("localhost", 9000)
-move_player("localhost", 9000)
+def build_catalog_message(rooms : array):
+  result = bytemessage()
+  result.int(1)
+
+  for room in rooms:
+    segment = build_room_message(room[0], room[1])
+    result.bytes(segment)
+
+  return result.get()
+
+octave_sensors = [{'type':'motionSensor', 'value':1}, {'type':'temperature', 'value':39}]
+lisp_sensors = [{'type':'humidity', 'value':85}]
+
+example_catalog = [('octave', octave_sensors), ('lisp', lisp_sensors)]
+
+message = build_catalog_message(example_catalog)
+send_bytes('localhost', 9000, message)

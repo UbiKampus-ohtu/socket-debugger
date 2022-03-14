@@ -1,4 +1,5 @@
 import time
+import random
 import socket
 from array import array
 from multiprocessing import connection
@@ -30,39 +31,23 @@ def build_catalog_message(rooms : array):
 
   return result.get()
 
-def build_player_message(id : int, transform : array):
-  result = bytemessage()
-  result.int(id)
-  
-  for fragment in transform:
-    result.float(fragment)
-
-  return result.get()
-
-def build_players_message(players : array):
-  result = bytemessage()
-  result.int(2)
-
-  for player in players:
-    segment = build_player_message(player['id'], player['transform'])
-    result.bytes(segment)
-
-  return result.get()
-
 octave_sensors = [{'type':'motionSensor', 'value':1}, {'type':'temperature', 'value':39}]
 lisp_sensors = [{'type':'humidity', 'value':85}]
 
-example_catalog = [('octave', octave_sensors), ('lisp', lisp_sensors)]
+example_catalog = [('Kotlin', octave_sensors), ('lisp', lisp_sensors)]
 
-catalog_message = build_catalog_message(example_catalog)
+def random_sensor():
+  sensor_types = [('motionSensor', 1), ('temperature', random.randrange(10, 32)), ('reserved', random.randrange(0, 2))]
+  index = random.randrange(0, len(sensor_types))
+  sensor = sensor_types[index]
+  return {'type':sensor[0], 'value':sensor[1]}
 
-player1 = {'id':12, 'transform': [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0]}
-player2 = {'id':23, 'transform': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}
-
-players_message = build_players_message([player1])
+def random_room_status():
+  rooms = ['Kotlin', 'Lisp', 'Modula', 'Neko', 'Octave', 'Python', 'Q', 'Java', 'Ada', 'Basic', 'Cobol', 'Dart', 'Erlang', 'Fortran', 'Go', 'Haskell', 'Idris']
+  index = random.randrange(0, len(rooms))
+  return (rooms[index], [random_sensor()])
 
 while True:
+  catalog_message = build_catalog_message([random_room_status()])
   send_bytes('localhost', 9000, catalog_message)
-  time.sleep(1)
-  send_bytes('localhost', 9000, players_message)
   time.sleep(1)
